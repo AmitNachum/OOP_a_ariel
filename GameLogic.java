@@ -1,4 +1,6 @@
+import java.awt.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class GameLogic implements PlayableLogic
@@ -7,13 +9,18 @@ public class GameLogic implements PlayableLogic
     private Player secondPlayer;
     private Disc[][] board;
     private boolean isFirstPlayerTurn;
+    private HashMap<Player , Color> playerColor;
 
     public GameLogic()
     {
         board = new Disc[8][8];
         this.isFirstPlayerTurn = true;
+        this.playerColor = new HashMap<>();
+        playerColor.put(firstPlayer, Color.WHITE);
+        playerColor.put(secondPlayer, Color.BLACK);
 
     }
+
     private boolean isWithinBounds(Position a)
     {
         int row = a.getRow();
@@ -55,18 +62,43 @@ public class GameLogic implements PlayableLogic
     }
 
     @Override
-    public List<Position> ValidMoves() {
-       List<Position> moves = new ArrayList<>();
-       for(int rowIndex = 0 ; rowIndex < 8 ; rowIndex++)
-       {
-           for (int colIndex = 0; colIndex < 8 ; colIndex++)
-           {
-            if(board[rowIndex][colIndex] == null)
-            {
+    public List<Position> ValidMoves()
+    {
 
-            }
-           }
-       }
+    }
+
+    private boolean isValidMove(int rowIndex, int colIndex, Disc disc)
+    {
+        if(board[rowIndex][colIndex] != null)
+            return false;
+
+        boolean rightSide = false;
+        boolean leftSide = false;
+        boolean topPart = false;
+        boolean downPart = false;
+        boolean rightTopDiaganol = false;
+        boolean leftDownDiaganol = false;
+        boolean leftTopDiaganol = false;
+        boolean rightDownDiaganol = false;
+
+        //row check for "sandwich"
+
+        for (int j = colIndex + 1; j < 8 ; j++)
+        {
+         if (board[rowIndex][j] != null)
+             rightSide = true;
+
+        }
+        for (int j = colIndex - 1; j >= 0 ; j--)
+        {
+         if(board[rowIndex][j] !=null)
+             leftSide = true;
+        }
+
+        if(rightSide && leftSide)
+            return false;
+
+        
     }
 
     @Override
@@ -110,6 +142,15 @@ public class GameLogic implements PlayableLogic
     @Override
     public void undoLastMove()
     {
-       
+
+    }
+
+    public Color getFirstPLayerColor()
+    {
+        return playerColor.get(firstPlayer);
+    }
+    public Color getSecondPlayerColor()
+    {
+        return playerColor.get(secondPlayer);
     }
 }
