@@ -50,7 +50,6 @@ public class GUI_for_chess_like_games extends JFrame {
                 ((Timer) e.getSource()).stop();  // Stop the timer
                 isAITurn = false;  // Reset AI flag
             }
-            preform_move();
             updateBoard();
         }
         ((Timer) e.getSource()).setInitialDelay(aiSpeedSlider.getValue());
@@ -144,7 +143,7 @@ public class GUI_for_chess_like_games extends JFrame {
         // Add playerOneWinsLabel to the right sub-panel
         playerOneWinsLabel.setForeground(Color.blue);
         leftLabelPanel.add(playerOneWinsLabel);
-gett
+
         // Add playerTowWinsLabel to the left sub-panel
         playerTowWinsLabel.setForeground(Color.red);
         rightLabelPanel.add(playerTowWinsLabel);
@@ -416,6 +415,7 @@ gett
         updateBoard();
         turnLabel.setText("Player 1's Turn");
     }
+
 }
 
 
