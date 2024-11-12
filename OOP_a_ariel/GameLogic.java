@@ -1,47 +1,45 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
 
 public class GameLogic implements PlayableLogic {
-    private Player firstPlayer = new HumanPlayer(true);
-    private Player secondPlayer = new HumanPlayer(false);
+    private Player firstPlayer;
+    private Player secondPlayer;
     private Disc[][] board;
+    boolean isFirst = true;
 
 
     public GameLogic()
     {
         board = new Disc[8][8];
 
-
     }
     public GameLogic(Player firstPlayer , Player secondPlayer)
     {
         this.firstPlayer = firstPlayer;
         this.secondPlayer = secondPlayer;
-    }
+
+}
+
+
 
     public Move placeDisc(Position position, Disc disc) {
 
         Player player = isFirstPlayerTurn() ? getFirstPlayer() : getSecondPlayer();
 
-        if (disc instanceof BombDisc)
-        {
-            if (player.number_of_bombs > 0 )
+        if (disc instanceof BombDisc) {
+            if (player.number_of_bombs > 0) {
                 player.number_of_bombs--;
-
-            else
+            } else {
                 return null;
-        }
-
-        if (disc instanceof UnflippableDisc)
-        {
-
-            if ( player.number_of_unflippedable > 0)
+            }
+        } else if (disc instanceof UnflippableDisc) {
+            if (player.number_of_unflippedable > 0) {
                 player.number_of_unflippedable--;
-
-            else
+            } else {
                 return null;
-
+            }
         }
 
         int row = position.row();
@@ -52,7 +50,10 @@ public class GameLogic implements PlayableLogic {
 
         board[row][col] = disc;
 
+
+
         List<Disc> discsToFlip = flippableDiscsAt(position);
+
 
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
@@ -61,10 +62,10 @@ public class GameLogic implements PlayableLogic {
             }
         }
 
+        switchPlayers();
+        isFirst = !isFirst;
 
         Move move = new Move(player, position, disc, discsToFlip);
-
-
         Move.getTracker().add(move);
 
 
@@ -119,11 +120,11 @@ public class GameLogic implements PlayableLogic {
             if (isWithinBounds(newRow, newCol)) {
                 Disc adjacentDisc = board[newRow][newCol];
 
-                if (adjacentDisc != null) {
+                if (adjacentDisc != null && !explodedDiscs.contains(adjacentDisc)) {
                     explodedDiscs.add(disc);
                 }
 
-                if (adjacentDisc instanceof BombDisc) {
+               if (adjacentDisc instanceof BombDisc) {
                     explodedDiscs.addAll(counterExplosions(newRow, newCol, player));
                 }
 
@@ -133,149 +134,52 @@ public class GameLogic implements PlayableLogic {
         }
         return explodedDiscs;
     }
-
-
     private List<Disc> flippableDiscsAt(Position position) {
         List<Disc> flippableDiscs = new ArrayList<>();
         Player player = isFirstPlayerTurn() ? getFirstPlayer() : getSecondPlayer();
         int row = position.row();
         int col = position.col();
 
-        if (!isValidMove(row, col))
-            return flippableDiscs;
 
-        boolean isOpponentDiscRight = true;
+        // Define directions as row and column increments
+        int[][] directions = {
+                {0, 1}, {0, -1}, {1, 0}, {-1, 0},  // Horizontal and Vertical
+                {1, 1}, {1, -1}, {-1, 1}, {-1, -1} // Diagonals
+        };
 
-        //row check for "sandwich"    B W W B
+        // Iterate over each direction
+        for (int[] dir : directions) {
+            int i = row + dir[0];
+            int j = col + dir[1];
+            List<Disc> potentialFlips = new ArrayList<>();
 
-        for (int j = col; j < 8 && isOpponentDiscRight; j++) {
+            while (i >= 0 && i < 8 && j >= 0 && j < 8) {
+                Disc currentDisc = board[i][j];
+                if (currentDisc == null) {
+                    break; // Empty cell, stop searching in this direction
+                }
 
-            if (board[row][j] != null && board[row][j].getOwner().equals(player))
-                isOpponentDiscRight = false;
+                if (currentDisc.getOwner().equals(player)) {
+                    flippableDiscs.addAll(potentialFlips); // Valid sandwich, add all potential flips
+                    break;
+                } else {
+                    // Opponent disc, add to potential flips
+                    potentialFlips.add(currentDisc);
 
-            else if (board[row][j] != null && !board[row][j].getType().equals("⭕"))
-                flippableDiscs.add(board[row][j]);
+                    // Check for bomb disc and add explosions
+                    if (currentDisc instanceof BombDisc) {
+                        flippableDiscs.addAll(counterExplosions(i, j, player));
+                        break;
+                    }
+                }
 
-
-            if (board[row][j] instanceof BombDisc)
-                flippableDiscs.addAll(counterExplosions(row, j, player));
-
-
-        }
-
-
-        boolean isOpponentDiscLeft = true;
-
-        for (int j = col; j >= 0 && isOpponentDiscLeft; j--) {
-
-            if (board[row][j] != null && board[row][j].getOwner().equals(player))
-                isOpponentDiscLeft = false;
-
-
-            else if (board[row][j] != null && !board[row][j].getType().equals("⭕"))
-                flippableDiscs.add(board[row][j]);
-
-
-            if (board[row][j] instanceof BombDisc)
-                flippableDiscs.addAll(counterExplosions(row, j, player));
-        }
-
-
-        boolean isOpponentTop = true;
-
-        for (int i = row; i >= 0 && isOpponentTop; i--) {
-
-            if (board[i][col] != null &&  board[i][col].getOwner().equals(player))
-                isOpponentTop = false;
-
-            else if (board[i][col] != null && !board[i][col].getType().equals("⭕"))
-                flippableDiscs.add(board[i][col]);
-
-            if (board[i][col] instanceof BombDisc)
-                flippableDiscs.addAll(counterExplosions(i, col, player));
-        }
-
-
-        boolean isOpponentBottom = true;
-
-        for (int i = row; i < 8 && isOpponentBottom; i++) {
-
-            if (board[i][col]!= null && board[i][col].getOwner().equals(player))
-                isOpponentBottom = false;
-
-            else if (board[i][col]!= null && !board[i][col].getType().equals("⭕"))
-                flippableDiscs.add(board[i][col]);
-
-            if (board[i][col] instanceof BombDisc)
-                flippableDiscs.addAll(counterExplosions(i, col, player));
-        }
-
-
-        boolean diaganolRightTop = true;
-
-        for (int i = row, j = col; i >= 0 && j < 8 && diaganolRightTop; i--, j++) {
-
-            if (board[i][j] != null && board[i][j].getOwner().equals(player))
-                diaganolRightTop = false;
-
-            else if (board[i][j] != null && !board[i][j].getType().equals("⭕"))
-                flippableDiscs.add(board[i][j]);
-
-            if (board[i][j] instanceof BombDisc)
-                flippableDiscs.addAll(counterExplosions(i, j, player));
-        }
-
-
-        boolean diaganolLeftBottom = true;
-
-        for (int i = row, j = col; i < 8 && j >= 0 && diaganolLeftBottom; i++, j--) {
-
-
-            if (board[i][j] != null && board[i][j].getOwner().equals(player))
-                diaganolLeftBottom = false;
-
-
-            else if (board[i][j] != null && !board[i][j].getType().equals("⭕"))
-                flippableDiscs.add(board[i][j]);
-
-            if (board[i][j] instanceof BombDisc)
-                flippableDiscs.addAll(counterExplosions(i, j, player));
-        }
-
-
-        boolean diaganolLeftTop = true;
-
-        for (int i = row, j = col; i >= 0 && j >= 0 && diaganolLeftTop; i--, j--) {
-
-            if (board[i][j] != null && board[i][j].getOwner().equals(player))
-                diaganolLeftTop = false;
-
-            else if (board[i][j] != null && board[i][j].getType().equals("⭕"))
-                flippableDiscs.add(board[i][j]);
-
-            if (board[i][j] instanceof BombDisc)
-                flippableDiscs.addAll(counterExplosions(i, j, player));
-        }
-
-
-        boolean diaganolRightBottom = true;
-
-        for (int i = row, j = col; i < 8 && j < 8 && diaganolRightBottom; i++, j++) {
-
-            if (board[i][j]!= null && board[i][j].getOwner().equals(player))
-                diaganolRightBottom = false;
-
-            else if (board[i][j]!= null && !board[i][j].getType().equals("⭕"))
-                flippableDiscs.add(board[i][j]);
-
-            if (board[i][j] instanceof BombDisc)
-                flippableDiscs.addAll(counterExplosions(i, j, player));
-
+                i += dir[0];
+                j += dir[1];
+            }
         }
 
         return flippableDiscs;
     }
-
     private boolean isWithinBounds(Position a) {
         int row = a.row();
         int col = a.col();
@@ -291,14 +195,19 @@ public class GameLogic implements PlayableLogic {
     public boolean locate_disc(Position a, Disc disc) {
         if (!isWithinBounds(a))
             return false;
-
-
         int row = a.row();
         int col = a.col();
 
 
-        return board[row][col] != null && board[row][col].equals(disc);
+
+        if (board[row][col] == null) {
+            placeDisc(a, disc);
+            return true;
+        }
+
+        return false;
     }
+
 
     @Override
     public Disc getDiscAtPosition(Position position) {
@@ -336,97 +245,48 @@ public class GameLogic implements PlayableLogic {
     private boolean isValidMove(int rowIndex, int colIndex) {
         Player player = isFirstPlayerTurn() ? getFirstPlayer() : getSecondPlayer();
 
-        if (board[rowIndex][colIndex] != null)
+
+        if (board[rowIndex][colIndex] != null) {
             return false;
-
-
-        boolean isOpponentDiscRight = true;
-
-        //row check for "sandwich"    B W W B
-
-        for (int j = colIndex; j < 8 && isOpponentDiscRight; j++) {
-            if (board[rowIndex][j] != null && board[rowIndex][j].getOwner().equals(player))
-                isOpponentDiscRight = false;
         }
 
-        if (!isOpponentDiscRight)
-            return true;
+
+        int[][] directions = {
+                {0, 1}, {0, -1}, {1, 0}, {-1, 0},
+                {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+        };
 
 
-        boolean isOpponentDiscLeft = true;
+        for (int[] dir : directions) {
+            int i = rowIndex + dir[0];
+            int j = colIndex + dir[1];
+            boolean hasOpponent = false;
 
-        for (int j = colIndex; j >= 0 && isOpponentDiscLeft; j--) {
-            if (board[rowIndex][j] != null && board[rowIndex][j].getOwner().equals(player))
-                isOpponentDiscLeft = false;
+
+            while (i >= 0 && i < 8 && j >= 0 && j < 8) {
+                Disc currentDisc = board[i][j];
+
+                if (currentDisc == null) {
+                    break;
+                } else if (currentDisc.getOwner().equals(player)) {
+                    if (hasOpponent)
+                    {
+                        return true;
+                    } else {
+                        break;
+                    }
+                } else {
+
+                    hasOpponent = true;
+                }
+
+
+                i += dir[0];
+                j += dir[1];
+            }
         }
 
-        if (!isOpponentDiscLeft)
-            return true;
-
-        ;
-        boolean isOpponentTop = true;
-
-        for (int i = rowIndex; i >= 0 && isOpponentTop; i--) {
-            if (board[i][colIndex] != null && board[i][colIndex].getOwner().equals(player))
-                isOpponentTop = false;
-        }
-
-        if (!isOpponentTop)
-            return true;
-
-
-        boolean isOpponentBottom = true;
-
-        for (int i = rowIndex; i < 8 && isOpponentBottom; i++) {
-            if (board[i][colIndex] != null && board[i][colIndex].getOwner().equals(player))
-                isOpponentBottom = false;
-        }
-
-        if (!isOpponentBottom)
-            return true;
-
-
-        boolean diaganolRightTop = true;
-
-        for (int i = rowIndex, j = colIndex; i >= 0 && j < 8 && diaganolRightTop; i--, j++) {
-            if (board[i][j] != null && board[i][j].getOwner().equals(player))
-                diaganolRightTop = false;
-        }
-
-        if (!diaganolRightTop)
-            return true;
-
-
-        boolean diaganolLeftBottom = true;
-
-        for (int i = rowIndex, j = colIndex; i < 8 && j >= 0 && diaganolLeftBottom; i++, j--) {
-            if (board[i][j] != null && board[i][j].getOwner().equals(player))
-                diaganolLeftBottom = false;
-        }
-
-        if (!diaganolLeftBottom)
-            return true;
-
-
-        boolean diaganolLeftTop = true;
-
-        for (int i = rowIndex, j = colIndex; i >= 0 && j >= 0 && diaganolLeftTop; i--, j--) {
-            if (board[i][j] != null && board[i][j].getOwner().equals(player))
-                diaganolLeftTop = false;
-        }
-
-        if (!diaganolLeftTop)
-            return true;
-
-
-        boolean diaganolRightBottom = true;
-
-        for (int i = rowIndex, j = colIndex; i < 8 && j < 8 && diaganolRightBottom; i++, j++) {
-            if (board[i][j] != null && board[i][j].getOwner().equals(player))
-                diaganolRightBottom = false;
-        }
-
-        return !diaganolRightBottom;
+        return false;
     }
 
     @Override
@@ -452,7 +312,7 @@ public class GameLogic implements PlayableLogic {
 
     @Override
     public boolean isFirstPlayerTurn() {
-        return firstPlayer.isPlayerOne();
+        return isFirst;
     }
 
     @Override
@@ -471,6 +331,7 @@ public class GameLogic implements PlayableLogic {
         board[midRow - 1][midCol] = new SimpleDisc(getFirstPlayer());
         board[midRow][midCol - 1] = new SimpleDisc(getFirstPlayer());
         board[midRow][midCol] = new SimpleDisc(getSecondPlayer());
+
 
     }
 
@@ -499,6 +360,10 @@ public class GameLogic implements PlayableLogic {
         }
 
 
+    }
+    private void switchPlayers()
+    {
+    firstPlayer.isPlayerOne = !firstPlayer.isPlayerOne;
     }
 
 }

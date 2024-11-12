@@ -26,8 +26,8 @@ public abstract class AbstractDisc implements Disc
     @Override
     public abstract String getType();
 
-
-
-
-
+    @Override
+    public String toString() {
+        return "The disc placed is : "+ getType();
+    }
 }

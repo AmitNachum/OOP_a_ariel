@@ -14,7 +14,7 @@ public class GreedyAI extends AIPlayer {
         int maxFlipp = -1;
 
         List<Position> positions = gameStatus.ValidMoves();
-        GameLogic temp = new GameLogic(new GreedyAI(false), new HumanPlayer((true)));
+        GameLogic temp = new GameLogic(new GreedyAI(false), new HumanPlayer((true)) );
 
         Disc[] type = {new BombDisc(this), new UnflippableDisc(this), new SimpleDisc(this)};
         Random rand = new Random();
