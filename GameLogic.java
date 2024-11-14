@@ -1,17 +1,16 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class GameLogic implements PlayableLogic {
     private Player firstPlayer;
     private Player secondPlayer;
     private Disc[][] board;
-    boolean isFirst = true;
-
+    private boolean isFirst = true;
+    private static final HashSet<Disc> explodedDiscs = new HashSet<>();
+    private static final HashSet<Position> flippedPositions = new HashSet<>();
 
     public GameLogic()
     {
         board = new Disc[8][8];
-
 
     }
     public GameLogic(Player firstPlayer , Player secondPlayer)
@@ -114,21 +113,28 @@ public class GameLogic implements PlayableLogic {
         int[] rowDirections = {-1, -1, -1, 0, 1, 1, 1, 0};
         int[] colDirections = {-1, 0, 1, 1, 1, 0, -1, -1};
 
-        // Recursively call flipDiscs on all 8 adjacent cells
+
         for (int i = 0; i < 8; i++) {
             int newRow = row + rowDirections[i];
             int newCol = col + colDirections[i];
 
+            if (!isWithinBounds(newRow, newCol)) continue;
+
             Disc adjacentDisc = board[newRow][newCol];
 
-            if (adjacentDisc != null && !adjacentDisc.getOwner().equals(player))
-                flipDiscs(disc, new Position(newRow, newCol));
+            if (adjacentDisc != null && !adjacentDisc.getOwner().equals(player)) {
+
+                if (!(adjacentDisc instanceof BombDisc)) {
+                    flipDiscs(adjacentDisc, new Position(newRow, newCol));
+                } else {
+                    triggerExplosion(newRow, newCol);
+                }
+            }
         }
     }
 
     private List<Disc> counterExplosions(int row, int col) {
         Player player = isFirstPlayerTurn() ? getFirstPlayer() : getSecondPlayer();
-        List<Disc> explodedDiscs = new ArrayList<>();
         Disc disc = board[row][col];
 
         int[] rowDirections = {-1, -1, -1, 0, 1, 1, 1, 0};
@@ -141,19 +147,23 @@ public class GameLogic implements PlayableLogic {
             if (isWithinBounds(newRow, newCol)) {
                 Disc adjacentDisc = board[newRow][newCol];
 
-                if (adjacentDisc != null && !adjacentDisc.getOwner().equals(player)) {
-                    explodedDiscs.add(disc);
-                }
 
-                if (adjacentDisc instanceof BombDisc) {
-                    explodedDiscs.addAll(counterExplosions(newRow, newCol));
+                if (adjacentDisc != null && !adjacentDisc.getOwner().equals(player) && !explodedDiscs.contains(adjacentDisc)) {
+                    explodedDiscs.add(disc);
+
+
+                    if (adjacentDisc instanceof BombDisc) {
+                        explodedDiscs.addAll(counterExplosions(newRow, newCol));
+                    }
                 }
             }
+         explodedDiscs.clear();
         }
-        return explodedDiscs;
+        return new ArrayList<>(explodedDiscs);
     }
 
     private List<Disc> flippableDiscsAt(Position position) {
+
         List<Disc> flippableDiscs = new ArrayList<>();
         Player player = isFirstPlayerTurn() ? getFirstPlayer() : getSecondPlayer();
         int row = position.row();
@@ -178,14 +188,14 @@ public class GameLogic implements PlayableLogic {
                     break; // Empty cell, stop searching in this direction
                 }
 
-                if (currentDisc.getOwner().equals(player) && !(currentDisc instanceof UnflippableDisc)) {
+
+                if (currentDisc.getOwner().equals(player)) {
                     flippableDiscs.addAll(potentialFlips); // Valid sandwich, add all potential flips
                     break;
 
                 } else if (!(currentDisc instanceof UnflippableDisc)) {
                     // Opponent disc, add to potential flips
                     potentialFlips.add(currentDisc);
-
                     // Check for bomb disc and add explosions
                     if (currentDisc instanceof BombDisc) {
                         potentialFlips.addAll(counterExplosions(i, j));
@@ -199,6 +209,8 @@ public class GameLogic implements PlayableLogic {
 
         return flippableDiscs;
     }
+
+
 
     private boolean isWithinBounds(Position a) {
         int row = a.row();
@@ -400,6 +412,7 @@ public class GameLogic implements PlayableLogic {
         System.out.println("    Undo: removing " + temp.disc().getType() + " from (" + row + ", " + col + ")");
 
         board[row][col] = null;
+
 
         List<Disc> modified = temp.getWereFlipped();
 
