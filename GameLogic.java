@@ -121,7 +121,6 @@ public class GameLogic implements PlayableLogic {
                 explodedDiscs.add(adjacentDisc);
 
                 if (adjacentDisc instanceof BombDisc) {
-                    System.out.println("Chain explosion triggered at (" + newRow + ", " + newCol + ")");
                     triggerExplosion(newRow, newCol); // Recursive call
                 } else if (!(adjacentDisc instanceof UnflippableDisc)) {
                     adjacentDisc.setOwner(player);
@@ -158,7 +157,7 @@ public class GameLogic implements PlayableLogic {
     }
 
 
-    private List<Disc> flippableDiscsAt(Position position) {
+public List<Disc> flippableDiscsAt(Position position) {
         Set<Disc> flippableDiscs = new HashSet<>();
         Player player = isFirstPlayerTurn() ? getFirstPlayer() : getSecondPlayer();
         int row = position.row();
@@ -356,7 +355,6 @@ public class GameLogic implements PlayableLogic {
             System.out.println("Player 2 wins with " + secondPlayerCounter + " discs! Player 1 had " + firstPlayerCounter + " discs.");
             return getSecondPlayer();
         } else {
-            System.out.println("It is a draw!");
             return null;
         }
     }
