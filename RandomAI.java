@@ -8,7 +8,6 @@ public class RandomAI extends AIPlayer {
         super(isPlayerOne);
     }
 
-
     @Override
     public Move makeMove(PlayableLogic gameStatus) {
         Random random = new Random();

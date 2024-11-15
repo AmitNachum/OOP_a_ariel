@@ -6,7 +6,6 @@ public class GameLogic implements PlayableLogic {
     private Disc[][] board;
     private boolean isFirst = true;
     private static final HashSet<Disc> explodedDiscs = new HashSet<>();
-    private static final HashSet<Disc> flippedDiscs = new HashSet<>();
 
     public GameLogic() {
         board = new Disc[8][8];
@@ -88,7 +87,6 @@ public class GameLogic implements PlayableLogic {
 
         // Flip the disc and mark it as processed
         disc.setOwner(player);
-        flippedDiscs.add(disc);
 
         System.out.println((player.equals(getFirstPlayer()) ? "Player 1" : "Player 2") +
                 " flipped the " + disc.getType() + " in (" + row + ", " + col + ")");
@@ -143,7 +141,7 @@ public class GameLogic implements PlayableLogic {
             if (isWithinBounds(newRow, newCol)) {
                 Disc adjacentDisc = board[newRow][newCol];
 
-                if (adjacentDisc != null && !adjacentDisc.getOwner().equals(player) && !explodedDiscs.contains(adjacentDisc)) {
+                if (adjacentDisc != null && !adjacentDisc.getOwner().equals(player) && !explodedDiscs.contains(adjacentDisc) && !(adjacentDisc instanceof UnflippableDisc)) {
                     explodedDiscs.add(adjacentDisc);
 
                     if (adjacentDisc instanceof BombDisc) {
@@ -156,8 +154,7 @@ public class GameLogic implements PlayableLogic {
         return new ArrayList<>(explodedDiscs);
     }
 
-
-public List<Disc> flippableDiscsAt(Position position) {
+    public List<Disc> flippableDiscsAt(Position position) {
         Set<Disc> flippableDiscs = new HashSet<>();
         Player player = isFirstPlayerTurn() ? getFirstPlayer() : getSecondPlayer();
         int row = position.row();
@@ -205,7 +202,6 @@ public List<Disc> flippableDiscsAt(Position position) {
 
         return new ArrayList<>(flippableDiscs); // Convert back to List for return
     }
-
 
     private boolean isWithinBounds(Position a) {
         int row = a.row();
@@ -330,7 +326,17 @@ public List<Disc> flippableDiscsAt(Position position) {
 
     @Override
     public boolean isGameFinished() {
-        return ValidMoves().isEmpty();
+        if (ValidMoves().isEmpty()) {
+            Player winner = theWinnerIs(); // Determine the winner before resetting the board
+
+            if (winner != null) {
+                winner.addWin(); // Update the win count for the winner if any
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     private Player theWinnerIs() {
@@ -361,12 +367,6 @@ public List<Disc> flippableDiscsAt(Position position) {
 
     @Override
     public void reset() {
-        Player winner = theWinnerIs(); // Determine the winner before resetting the board
-
-        if (winner != null) {
-            winner.addWin(); // Update the win count for the winner if any
-        }
-
         // Reset the board and other game-specific counters and state
         board = new Disc[8][8];
         getFirstPlayer().reset_bombs_and_unflippedable();
@@ -383,6 +383,7 @@ public List<Disc> flippableDiscsAt(Position position) {
         // Reset turn control to initial player
         isFirst = true; // or set to initial player if there's a specific first player
     }
+
     @Override
     public void undoLastMove() {
         Player player = isFirstPlayerTurn() ? getFirstPlayer() : getSecondPlayer();
@@ -397,7 +398,7 @@ public List<Disc> flippableDiscsAt(Position position) {
             return;
 
         int numBombs = player.number_of_bombs;
-        int numUnFlipp = player.number_of_unflippedable;
+        int numbUnFlips = player.number_of_unflippedable;
         Move temp = Move.getTracker().pop();
         int row = temp.position().row();
         int col = temp.position().col();
@@ -429,7 +430,7 @@ public List<Disc> flippableDiscsAt(Position position) {
         if (temp.disc() instanceof BombDisc && numBombs < 3)
             player.number_of_bombs++;
 
-        if (temp.disc() instanceof UnflippableDisc && numUnFlipp < 2)
+        if (temp.disc() instanceof UnflippableDisc && numbUnFlips < 2)
             player.number_of_unflippedable++;
 
         isFirst = !isFirst;
