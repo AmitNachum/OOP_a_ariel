@@ -1,3 +1,4 @@
+import java.awt.*;
 import java.util.List;
 import java.util.Random;
 
@@ -7,22 +8,32 @@ public class RandomAI extends AIPlayer {
         super(isPlayerOne);
     }
 
-
     @Override
     public Move makeMove(PlayableLogic gameStatus) {
-        List<Position> list = gameStatus.ValidMoves();
         Random random = new Random();
-        int randomNum = random.nextInt(list.size());
-        Position runPos = list.get(randomNum);
 
-        GameLogic temp = new GameLogic(new RandomAI(false) , new HumanPlayer(true));
+        GameLogic temp = new GameLogic();
 
-        Disc[] type = {new BombDisc(this), new UnflippableDisc(this), new SimpleDisc(this)};
+        // Retrieve the list of valid moves from the interface
+        List<Position> validMoves = gameStatus.ValidMoves();
+        if (validMoves.isEmpty()) {
+            return null; // No valid moves available
+        }
 
-        int index = random.nextInt(type.length);
+        // Select a random position from the valid moves
+        Position chosenPosition = validMoves.get(random.nextInt(validMoves.size()));
 
-        Disc randomDisc = type[index];
+        // Choose a random disc type
+        Disc[] discTypes = {new BombDisc(this), new UnflippableDisc(this), new SimpleDisc(this)};
+        Disc chosenDisc = discTypes[random.nextInt(discTypes.length)];
 
-        return temp.placeDisc(runPos, randomDisc);
+        // Retrieve the player making the move
+        Player currentPlayer = gameStatus.isFirstPlayerTurn() ? gameStatus.getFirstPlayer() : gameStatus.getSecondPlayer();
+
+        // Determine the discs to flip at the chosen position
+        List<Disc> discsToFlip = temp.flippableDiscsAt(chosenPosition);
+
+        // Create and return the move
+        return new Move(currentPlayer, chosenPosition, chosenDisc, discsToFlip);
     }
 }
